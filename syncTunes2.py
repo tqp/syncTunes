@@ -149,16 +149,6 @@ def exclude_files_with_bad_substrings(path):
             print(os.path.join(root, file_name))
 
 
-def exclude_files_containing_substring(root, files, excluded_substrings):
-    files_excluded = []
-    for file in files:
-        if not any(substring in file for substring in excluded_substrings):
-            files_excluded.append(file)
-        else:
-            print("Excluding (Substring): " + os.path.join(root, file))
-    return files_excluded
-
-
 def exclude_files_with_suffix(root, files, excluded_suffixes):
     files_excluded = []
     for file in files:
@@ -166,6 +156,16 @@ def exclude_files_with_suffix(root, files, excluded_suffixes):
             files_excluded.append(file)
         # else:
         #     print("Excluding (Suffix): " + os.path.join(root, file))
+    return files_excluded
+
+
+def exclude_files_containing_substring(root, files, excluded_substrings):
+    files_excluded = []
+    for file in files:
+        if not any(substring in file for substring in excluded_substrings):
+            files_excluded.append(file)
+        else:
+            print("Excluding (Substring): " + os.path.join(root, file))
     return files_excluded
 
 
@@ -238,6 +238,9 @@ def get_rename_candidate_substring_list():
     return {
         'ft.', 'Ft.',
         'lyrics', 'Lyrics', 'lyric', 'Lyric',
+        'official', 'Official',
+        'audio', 'Audio',
+        'video', 'Video',
         'whats', 'Whats',
         'thats', 'Thats'
     }
@@ -300,13 +303,34 @@ def highlight_rename_candidates(path):
                 print("Exception (Formatting): " + root + "\\" + file_name)
 
 
+def highlight_low_bit_rate(path):
+    bit_rate_threshold = 128
+    print("\n===== Looking for Low Bit Rate MP3s =====")
+    for root, dirs, files in os.walk(path):
+        files = exclude_files_with_suffix(root, files, get_exclude_suffix_list())
+        files = exclude_files_containing_substring(root, files, get_exclude_substring_list())
+        for file_name in files:
+            try:
+                audio_file = eyed3.load(root + "\\" + file_name)
+                if audio_file.info and audio_file.info.bit_rate[1] < bit_rate_threshold:
+                    bit_rate = audio_file.info.bit_rate[1]
+                    data = file_name.split("-")
+                    path = "[" + os.path.basename(root + "] " + data[0].strip() + " - " + data[1].strip())
+                    print("Re-Download (Bit Rate {}): {}".format(bit_rate, path))
+                    # print("Re-Download (Bit Rate {}): {}", format(audio_file.info.bit_rate[1], path))
+            except AttributeError:
+                print("AttributeError: " + root + "\\" + file_name)
+            except IndexError:
+                print("Exception (Formatting): " + root + "\\" + file_name)
+
+
 def update_tags_from_file_name(path):
     print("\n===== Updating tags from file name =====")
     for root, dirs, files in os.walk(path):
         files = exclude_files_with_suffix(root, files, get_exclude_suffix_list())
         files = exclude_files_containing_substring(root, files, get_exclude_substring_list())
         for file_name in files:
-            data = file_name.split("-")
+            data = file_name.split(" - ")
             try:
                 temp = "Updating Tags: [" + os.path.basename(root + "] " + data[0].strip() + " - " + data[1].strip())
                 # print("Updating Tags: [" + os.path.basename(root + "] " + data[0].strip() + " - " + data[1].strip()))
@@ -330,8 +354,8 @@ def update_tags_from_file_name(path):
 
 
 # MAIN PROGRAM
-# rootDir = "Z:\\MUSIC\\iPod Music"
-rootDir = "C:\\_TQP\Temp"
+rootDir = "Z:\\MUSIC\\iPod Music"
+# rootDir = "C:\\_TQP\Temp"
 
 
 # rootDir = "Z:\\MUSIC\\Non-Synched Mixes"
@@ -341,8 +365,9 @@ def main():
     print("SyncTunes v2")
     # list_files(rootDir)
     # delete_crap_files(rootDir)
-    highlight_rename_candidates(rootDir)
-    update_tags_from_file_name(rootDir)
+    # highlight_rename_candidates(rootDir)
+    highlight_low_bit_rate(rootDir)
+    # update_tags_from_file_name(rootDir)
 
 
 main()
