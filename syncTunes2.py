@@ -8,6 +8,7 @@ import eyed3
 eyed3.log.setLevel("ERROR")
 iTunes = win32com.client.Dispatch("iTunes.Application")
 
+
 # TODO
 # Copy File to Library
 # Delete Song from Library
@@ -121,6 +122,15 @@ def loop_through_all_files_in_tree(path):
 # Good Code Samples to Remember:
 # return files = [file for file in files if not any(substring in file for substring in excluded_suffixes)]
 
+def rename_mp3_files_not_conforming_to_standards(path):
+    print("\nRenaming non-conforming MP3 files:")
+    for root, dirs, files in os.walk(path):
+        mp3_files = [file for file in files if any(file.endswith(suffix) for suffix in {'.mp3'})]
+        for file_name in mp3_files:
+            if "-" in file_name.lower() and " - " not in file_name.lower():
+                rename_file("Dash Missing Spaces", root, file_name, "-", " - ")
+
+
 def exclude_files_with_bad_suffixes(path):
     print("\nFiles with bad suffixes:")
     bad_suffixes = {'.m4a'}
@@ -139,13 +149,24 @@ def exclude_files_with_bad_substrings(path):
             print(os.path.join(root, file_name))
 
 
-def rename_mp3_files_not_conforming_to_standards(path):
-    print("\nRenaming non-conforming MP3 files:")
-    for root, dirs, files in os.walk(path):
-        mp3_files = [file for file in files if any(file.endswith(suffix) for suffix in {'.mp3'})]
-        for file_name in mp3_files:
-            if "-" in file_name.lower() and " - " not in file_name.lower():
-                rename_file("Dash Missing Spaces", root, file_name, "-", " - ")
+def exclude_files_containing_substring(root, files, excluded_substrings):
+    files_excluded = []
+    for file in files:
+        if not any(substring in file for substring in excluded_substrings):
+            files_excluded.append(file)
+        else:
+            print("Excluding (Substring): " + os.path.join(root, file))
+    return files_excluded
+
+
+def exclude_files_with_suffix(root, files, excluded_suffixes):
+    files_excluded = []
+    for file in files:
+        if not any(substring in file for substring in excluded_suffixes):
+            files_excluded.append(file)
+        # else:
+        #     print("Excluding (Suffix): " + os.path.join(root, file))
+    return files_excluded
 
 
 def include_files_containing_substring(root, files, included_substrings):
@@ -156,14 +177,15 @@ def include_files_containing_substring(root, files, included_substrings):
     return files_included
 
 
-def exclude_files_containing_substring(root, files, excluded_substrings):
-    files_not_excluded = []
+def include_files_containing_hyphen_issues(root, files):
+    files_included = []
     for file in files:
-        if not any(substring in file for substring in excluded_substrings):
-            files_not_excluded.append(file)
-        else:
-            print("Excluding by substring: " + os.path.join(root, file))
-    return files_not_excluded
+        # print("file: {}: count = {}".format(file, file.count('-')))
+        if file.count('-') > 1:
+            files_included.append(file)
+        elif file.count('-') <= 0:
+            files_included.append(file)
+    return files_included
 
 
 def include_files_with_suffix(root, files, included_suffixes):
@@ -174,14 +196,51 @@ def include_files_with_suffix(root, files, included_suffixes):
     return files_included
 
 
-def exclude_files_with_suffix(root, files, excluded_suffixes):
-    files_not_excluded = []
+def include_files_containing_bad_characters(root, files, included_substrings):
+    files_included = []
     for file in files:
-        if not any(substring in file for substring in excluded_suffixes):
-            files_not_excluded.append(file)
-        else:
-            print("Excluding for suffix: " + os.path.join(root, file))
-    return files_not_excluded
+        if any(substring in file for substring in included_substrings):
+            files_included.append(file)
+    return files_included
+
+
+# === LISTS ===
+def get_exclude_suffix_list():
+    return {
+        '.m4a', '.db', '.ini', '.jpg', '.cbsync'
+    }
+
+
+def get_exclude_substring_list():
+    return {
+    }
+
+
+def get_bad_characters_list():
+    return {
+        'ñ', 'é', 'ó',
+    }
+
+
+def get_delete_suffix_list():
+    return {
+        '.jpg'
+    }
+
+
+def get_delete_substring_list():
+    return {
+        '.cbsync'
+    }
+
+
+def get_rename_candidate_substring_list():
+    return {
+        'ft.', 'Ft.',
+        'lyrics', 'Lyrics', 'lyric', 'Lyric',
+        'whats', 'Whats',
+        'thats', 'Thats'
+    }
 
 
 # === MAIN ACTIONS ===
@@ -190,40 +249,76 @@ def exclude_files_with_suffix(root, files, excluded_suffixes):
 def list_files(path):
     for root, dirs, files in os.walk(path):
         print("\n----- " + root + "-----")
-        files = exclude_files_with_suffix(root, files, {'.m4a', '.db', '.ini', '.jpg', '.cbsync'})
-        files = exclude_files_containing_substring(root, files, {'ñ', 'é', 'ó', '.cbsync'})
-        # for file_name in files:
-        #     print(os.path.join(root, file_name))
+        files = exclude_files_with_suffix(root, files, get_exclude_suffix_list())
+        files = exclude_files_containing_substring(root, files, get_exclude_substring_list())
+        for file_name in files:
+            print(os.path.join(root, file_name))
 
 
 def delete_crap_files(path):
     print("\n===== Deleting crap files =====")
     for root, dirs, files in os.walk(path):
-        files1 = include_files_with_suffix(root, files, {'.jpg'})
-        files2 = include_files_containing_substring(root, files, {'.cbsync'})
+        files1 = include_files_with_suffix(root, files, get_delete_suffix_list())
+        files2 = include_files_containing_substring(root, files, get_delete_substring_list())
         files = files1 + files2
         for file_name in files:
             delete_file(os.path.join(root, file_name))
 
 
+def highlight_rename_candidates(path):
+    print("\n===== Rename Candidates =====")
+    for root, dirs, files in os.walk(path):
+        files = exclude_files_with_suffix(root, files, get_exclude_suffix_list())
+        files = exclude_files_containing_substring(root, files, get_exclude_substring_list())
+
+        files_hyphen = include_files_containing_hyphen_issues(root, files)
+        for file_name in files_hyphen:
+            try:
+                print(
+                    "Rename (Hyphen): [" + os.path.basename(root + "] " + file_name))
+            except IndexError:
+                print("Exception (Formatting): " + root + "\\" + file_name)
+
+        files_bad_characters = include_files_containing_bad_characters(root, files, get_bad_characters_list())
+        for file_name in files_bad_characters:
+            data = file_name.split("-")
+            try:
+                print(
+                    "Rename (Bad Characters): [" +
+                    os.path.basename(root + "] " + data[0].strip() + " - " + data[1].strip()))
+            except IndexError:
+                print("Exception (Formatting): " + root + "\\" + file_name)
+
+        files_bad_substring = include_files_containing_substring(root, files, get_rename_candidate_substring_list())
+        for file_name in files_bad_substring:
+            data = file_name.split("-")
+            try:
+                print(
+                    "Rename (Substring): [" + os.path.basename(
+                        root + "] " + data[0].strip() + " - " + data[1].strip()))
+            except IndexError:
+                print("Exception (Formatting): " + root + "\\" + file_name)
+
+
 def update_tags_from_file_name(path):
     print("\n===== Updating tags from file name =====")
     for root, dirs, files in os.walk(path):
-        files = exclude_files_with_suffix(root, files, {'.m4a', '.db', '.ini', '.jpg', '.cbsync'})
-        files = exclude_files_containing_substring(root, files, {'ñ', 'é', 'ó', '.cbsync'})
+        files = exclude_files_with_suffix(root, files, get_exclude_suffix_list())
+        files = exclude_files_containing_substring(root, files, get_exclude_substring_list())
         for file_name in files:
             data = file_name.split("-")
             try:
-                print("Updating Tags: [" + os.path.basename(root + "] " + data[0].strip() + " - " + data[1].strip()))
+                temp = "Updating Tags: [" + os.path.basename(root + "] " + data[0].strip() + " - " + data[1].strip())
+                # print("Updating Tags: [" + os.path.basename(root + "] " + data[0].strip() + " - " + data[1].strip()))
             except IndexError:
-                print("Exception (IndexError): " + root + "\\" + file_name)
+                print("Exception (Formatting): " + root + "\\" + file_name)
 
             # Set ID3 tags from filename and directory
             audio_file = eyed3.load(root + "\\" + file_name)
             try:
                 audio_file.initTag()
                 audio_file.tag.artist = data[0].strip()
-                audio_file.tag.title = data[1].strip()
+                audio_file.tag.title = data[1].strip().replace('.mp3', '')
                 audio_file.tag.genre = os.path.basename(root)
                 audio_file.tag.album = u"TQP Album"
                 audio_file.tag.comments.set("TQP")
@@ -231,19 +326,22 @@ def update_tags_from_file_name(path):
             except AttributeError:
                 print("AttributeError: " + root + "\\" + file_name)
             except IndexError:
-                print("Exception (IndexError): " + root + "\\" + file_name)
+                print("Exception (Formatting): " + root + "\\" + file_name)
 
 
 # MAIN PROGRAM
-rootDir = "Z:\\MUSIC\\iPod Music"
-# rootDir = "C:\\_TQP\Temp"
+# rootDir = "Z:\\MUSIC\\iPod Music"
+rootDir = "C:\\_TQP\Temp"
+
+
 # rootDir = "Z:\\MUSIC\\Non-Synched Mixes"
 
 
 def main():
     print("SyncTunes v2")
     # list_files(rootDir)
-    delete_crap_files(rootDir)
+    # delete_crap_files(rootDir)
+    highlight_rename_candidates(rootDir)
     update_tags_from_file_name(rootDir)
 
 
