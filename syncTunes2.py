@@ -16,6 +16,59 @@ iTunes = win32com.client.Dispatch("iTunes.Application")
 # Remove Song from Playlist
 
 
+# === LISTS ===
+def get_exclude_suffix_list():
+    return {
+        '.m4a', '.db', '.ini', '.jpg', '.cbsync',
+        '.gss', '._gs', '.gsl'
+    }
+
+
+def get_exclude_substring_list():
+    return {
+    }
+
+
+def get_bad_characters_list():
+    return {
+        'Á', 'á', 'ç', 'é', 'è', 'ñ', 'ó',
+        '’', 'Ø', 'Ö',
+        '¿', '[', ']'
+    }
+
+
+def get_delete_suffix_list():
+    return {
+        '.jpg'
+    }
+
+
+def get_delete_substring_list():
+    return {
+        '.cbsync'
+    }
+
+
+def get_rename_candidate_substring_list():
+    return {
+        'ft.', 'Ft.',
+        'lyrics', 'Lyrics', 'lyric', 'Lyric',
+        'official', 'Official',
+        'audio', 'Audio',
+        'video', 'Video',
+        'whats', 'Whats',
+        'thats', 'Thats'
+    }
+
+
+def list_rename_exceptions():
+    return {
+        'Audioslave', 'Big Audio Dynamite',
+        'Video Games', 'Video Killed',
+        'Witchcraft', 'Shift'
+    }
+
+
 # === TOOLS ===
 
 def create_playlist(playlist_name):
@@ -165,7 +218,8 @@ def exclude_files_containing_substring(root, files, excluded_substrings):
         if not any(substring in file for substring in excluded_substrings):
             files_excluded.append(file)
         else:
-            print("Excluding (Substring): " + os.path.join(root, file))
+            message = "Excluding (Substring): " + os.path.join(root, file)
+            # print("Excluding (Substring): " + os.path.join(root, file))
     return files_excluded
 
 
@@ -181,7 +235,7 @@ def include_files_containing_hyphen_issues(root, files):
     files_included = []
     for file in files:
         # print("file: {}: count = {}".format(file, file.count('-')))
-        if file.count('-') > 1:
+        if file.count(' - ') > 1:
             files_included.append(file)
         elif file.count('-') <= 0:
             files_included.append(file)
@@ -202,48 +256,6 @@ def include_files_containing_bad_characters(root, files, included_substrings):
         if any(substring in file for substring in included_substrings):
             files_included.append(file)
     return files_included
-
-
-# === LISTS ===
-def get_exclude_suffix_list():
-    return {
-        '.m4a', '.db', '.ini', '.jpg', '.cbsync'
-    }
-
-
-def get_exclude_substring_list():
-    return {
-    }
-
-
-def get_bad_characters_list():
-    return {
-        'ñ', 'é', 'ó',
-    }
-
-
-def get_delete_suffix_list():
-    return {
-        '.jpg'
-    }
-
-
-def get_delete_substring_list():
-    return {
-        '.cbsync'
-    }
-
-
-def get_rename_candidate_substring_list():
-    return {
-        'ft.', 'Ft.',
-        'lyrics', 'Lyrics', 'lyric', 'Lyric',
-        'official', 'Official',
-        'audio', 'Audio',
-        'video', 'Video',
-        'whats', 'Whats',
-        'thats', 'Thats'
-    }
 
 
 # === MAIN ACTIONS ===
@@ -293,6 +305,7 @@ def highlight_rename_candidates(path):
                 print("Exception (Formatting): " + root + "\\" + file_name)
 
         files_bad_substring = include_files_containing_substring(root, files, get_rename_candidate_substring_list())
+        files_bad_substring = exclude_files_containing_substring(root, files_bad_substring, list_rename_exceptions())
         for file_name in files_bad_substring:
             data = file_name.split("-")
             try:
@@ -344,7 +357,7 @@ def update_tags_from_file_name(path):
                 audio_file.tag.artist = data[0].strip()
                 audio_file.tag.title = data[1].strip().replace('.mp3', '')
                 audio_file.tag.genre = os.path.basename(root)
-                audio_file.tag.album = u"TQP Album"
+                audio_file.tag.album = u"TQP"
                 audio_file.tag.comments.set("TQP")
                 audio_file.tag.save()
             except AttributeError:
@@ -355,6 +368,8 @@ def update_tags_from_file_name(path):
 
 # MAIN PROGRAM
 rootDir = "Z:\\MUSIC\\iPod Music"
+
+
 # rootDir = "C:\\_TQP\Temp"
 
 
@@ -365,9 +380,9 @@ def main():
     print("SyncTunes v2")
     # list_files(rootDir)
     # delete_crap_files(rootDir)
-    # highlight_rename_candidates(rootDir)
-    highlight_low_bit_rate(rootDir)
-    # update_tags_from_file_name(rootDir)
+    highlight_rename_candidates(rootDir)
+    # highlight_low_bit_rate(rootDir)
+    update_tags_from_file_name(rootDir)
 
 
 main()
