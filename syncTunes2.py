@@ -1,3 +1,5 @@
+# -*- coding: shift_jis -*-
+
 # Windows: "Files" are in "Folders"
 # iTunes: "Songs" are in "Libraries" or "Playlists"
 
@@ -31,15 +33,15 @@ def get_exclude_substring_list():
 
 def get_bad_characters_list():
     return {
-        'Á', 'á', 'ç', 'é', 'è', 'ñ', 'ó',
-        '’', 'Ø', 'Ö',
-        '¿', '[', ']'
+        '?', '?', '?', '?', '?', '?', '?',
+        '�f', '?', '?',
+        '?', '[', ']'
     }
 
 
 def get_delete_suffix_list():
     return {
-        '.jpg'
+        '.jpg', '.log'
     }
 
 
@@ -195,7 +197,7 @@ def exclude_files_with_bad_suffixes(path):
 
 def exclude_files_with_bad_substrings(path):
     print("\nFiles with bad substrings:")
-    bad_substrings = {'ñ'}
+    bad_substrings = {'?'}
     for root, dirs, files in os.walk(path):
         bad_files = [file for file in files if any(substring in file for substring in bad_substrings)]
         for file_name in bad_files:
@@ -263,11 +265,13 @@ def include_files_containing_bad_characters(root, files, included_substrings):
 
 def list_files(path):
     for root, dirs, files in os.walk(path):
-        print("\n----- " + root + "-----")
+        print("\n----- " + root + " -----")
         files = exclude_files_with_suffix(root, files, get_exclude_suffix_list())
         files = exclude_files_containing_substring(root, files, get_exclude_substring_list())
         for file_name in files:
-            print(os.path.join(root, file_name))
+            # print(os.path.join(root, file_name))
+            message = "Genre: [" + os.path.basename(root) + "]"
+            print(message)
 
 
 def delete_crap_files(path):
@@ -290,7 +294,7 @@ def highlight_rename_candidates(path):
         for file_name in files_hyphen:
             try:
                 print(
-                    "Rename (Hyphen): [" + os.path.basename(root + "] " + file_name))
+                    "Rename (Hyphen): [" + os.path.basename(root) + "] " + file_name)
             except IndexError:
                 print("Exception (Formatting): " + root + "\\" + file_name)
 
@@ -300,7 +304,7 @@ def highlight_rename_candidates(path):
             try:
                 print(
                     "Rename (Bad Characters): [" +
-                    os.path.basename(root + "] " + data[0].strip() + " - " + data[1].strip()))
+                    os.path.basename(root) + "] " + data[0].strip() + " - " + data[1].strip())
             except IndexError:
                 print("Exception (Formatting): " + root + "\\" + file_name)
 
@@ -311,7 +315,7 @@ def highlight_rename_candidates(path):
             try:
                 print(
                     "Rename (Substring): [" + os.path.basename(
-                        root + "] " + data[0].strip() + " - " + data[1].strip()))
+                        root) + "] " + data[0].strip() + " - " + data[1].strip())
             except IndexError:
                 print("Exception (Formatting): " + root + "\\" + file_name)
 
@@ -328,13 +332,28 @@ def highlight_low_bit_rate(path):
                 if audio_file.info and audio_file.info.bit_rate[1] < bit_rate_threshold:
                     bit_rate = audio_file.info.bit_rate[1]
                     data = file_name.split("-")
-                    path = "[" + os.path.basename(root + "] " + data[0].strip() + " - " + data[1].strip())
+                    path = "[" + os.path.basename(root) + "] " + data[0].strip() + " - " + data[1].strip()
                     print("Re-Download (Bit Rate {}): {}".format(bit_rate, path))
                     # print("Re-Download (Bit Rate {}): {}", format(audio_file.info.bit_rate[1], path))
             except AttributeError:
                 print("AttributeError: " + root + "\\" + file_name)
             except IndexError:
                 print("Exception (Formatting): " + root + "\\" + file_name)
+
+
+def check_file_editable(path):
+    print("\n===== Check If File Is Editable =====")
+    for root, dirs, files in os.walk(path):
+        print("\n----- " + root + " -----")
+        files = exclude_files_with_suffix(root, files, get_exclude_suffix_list())
+        files = exclude_files_containing_substring(root, files, get_exclude_substring_list())
+        for file_name in files:
+            data = file_name.split(" - ")
+            try:
+                audio_file = eyed3.load(root + "\\" + file_name)
+                audio_file.initTag()
+            except AttributeError:
+                print("Couldn't Access Tags: " + root + "\\" + file_name)
 
 
 def update_tags_from_file_name(path):
@@ -345,8 +364,8 @@ def update_tags_from_file_name(path):
         for file_name in files:
             data = file_name.split(" - ")
             try:
-                temp = "Updating Tags: [" + os.path.basename(root + "] " + data[0].strip() + " - " + data[1].strip())
-                # print("Updating Tags: [" + os.path.basename(root + "] " + data[0].strip() + " - " + data[1].strip()))
+                message = "Updating Tags: [" + os.path.basename(root) + "] " + data[0].strip() + " - " + data[1].strip()
+                print(message)
             except IndexError:
                 print("Exception (Formatting): " + root + "\\" + file_name)
 
@@ -357,13 +376,24 @@ def update_tags_from_file_name(path):
                 audio_file.tag.artist = data[0].strip()
                 audio_file.tag.title = data[1].strip().replace('.mp3', '')
                 audio_file.tag.genre = os.path.basename(root)
-                audio_file.tag.album = u"TQP"
+                # audio_file.tag.album = u"TQP"
+                audio_file.tag.album = os.path.basename(root)
                 audio_file.tag.comments.set("TQP")
                 audio_file.tag.save()
             except AttributeError:
                 print("AttributeError: " + root + "\\" + file_name)
             except IndexError:
                 print("Exception (Formatting): " + root + "\\" + file_name)
+
+
+def find_files_with_string(path, search_string):
+    print("\n===== Searching for: " + search_string + " =====")
+    for root, dirs, files in os.walk(path):
+        files = include_files_containing_substring(root, files, [search_string])
+        for file_name in files:
+            data = file_name.split(" - ")
+            message = "Found: [" + os.path.basename(root) + "] " + data[0].strip() + " - " + data[1].strip()
+            print(message)
 
 
 # MAIN PROGRAM
@@ -379,10 +409,12 @@ rootDir = "Z:\\MUSIC\\iPod Music"
 def main():
     print("SyncTunes v2")
     # list_files(rootDir)
+    # find_files_with_string(rootDir, "Doors")
     # delete_crap_files(rootDir)
-    highlight_rename_candidates(rootDir)
+    # highlight_rename_candidates(rootDir)
     # highlight_low_bit_rate(rootDir)
-    update_tags_from_file_name(rootDir)
+    check_file_editable(rootDir)
+    # update_tags_from_file_name(rootDir)
 
 
 main()
