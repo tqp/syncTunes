@@ -29,12 +29,14 @@ def get_album(path):
 # MUTAGEN SETTERS
 
 def set_title(path, title):
-    mp3_write = EasyID3(path)
-    mp3_write['title'] = title
     try:
+        mp3_write = EasyID3(path)
+        mp3_write['title'] = title
         mp3_write.save()
-    except:
-        print('TQP UnicodeEncodeError: ' + path)
+    except UnboundLocalError as e:
+        print('UnboundLocalError: ' + path + ': ' + str(e))
+    except Exception as e:
+        print('Exception: ' + path + ': ' + str(e))
 
 
 def set_artist(path, artist):
@@ -65,7 +67,11 @@ def get_artist_from_filename(file_name):
 
 def get_title_from_filename(file_name):
     data = file_name.split(" - ")
-    return data[1].strip().replace('.mp3', '')
+    try:
+        title = data[1].strip().replace('.mp3', '')
+        return title
+    except Exception as e:
+        print('Exception: ' + file_name + ': ' + str(e))
 
 
 def get_genre_from_path(root):
@@ -97,13 +103,14 @@ def update_tags_from_path(path):
 
 
 def main():
-    # path = "M:\\Test Folder\\Beach\\Dobie Gray - Drift Away.mp3"
-    # path = "M:\\Test Folder\\Beach"
-    # path = 'M:\\Tim\'s Playlists'
-    # path = 'M:\\Tim\'s Playlists\\Relax Folder\\Relax - Feel Good'
-    path = 'M:\\Test Folder'
+    # path = 'M:\\Tim\'s Playlists\\Video Clips'
+    path = 'M:\\Tim\'s Playlists'
+
+    # path = '/volume1/music//Tim\'s Playlists/The 1980\'s Folder/The 1980\'s - Legwarmers'
+    # path = '/volume1/music//Tim\'s Playlists'
 
     update_tags_from_path(path)
+    print('Finished.')
 
 
 main()
