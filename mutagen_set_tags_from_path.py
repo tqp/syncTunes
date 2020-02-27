@@ -1,4 +1,5 @@
 import os
+import time
 
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
@@ -103,6 +104,7 @@ def update_tags_from_path(path):
 
 
 def main():
+    print('Starting \'Set Playlist Tags\' Job at ' + time.ctime())
     # path = 'M:\\Tim\'s Playlists\\Video Clips'
     path = 'M:\\Tim\'s Playlists'
 
