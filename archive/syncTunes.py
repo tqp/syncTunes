@@ -6,8 +6,8 @@ import eyed3
 import win32com.client
 
 iTunes = win32com.client.Dispatch("iTunes.Application")
-# srcDirectory = "C:\_TQP\Temp"
-srcDirectory = "Z:\MUSIC\iPod Music"
+srcDirectory = "C:\_TQP\Temp"
+# srcDirectory = "E:\MUSIC\iPod Music"
 eyed3.log.setLevel("ERROR")
 
 

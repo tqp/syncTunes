@@ -3,12 +3,15 @@
 # Windows: "Files" are in "Folders"
 # iTunes: "Songs" are in "Libraries" or "Playlists"
 
-import win32com.client
 import os
+
 import eyed3
 
 eyed3.log.setLevel("ERROR")
-iTunes = win32com.client.Dispatch("iTunes.Application")
+
+
+# If you want to sync with iTunes:
+# iTunes = win32com.client.Dispatch("iTunes.Application")
 
 
 # TODO
@@ -22,7 +25,9 @@ iTunes = win32com.client.Dispatch("iTunes.Application")
 def get_exclude_suffix_list():
     return {
         '.m4a', '.db', '.ini', '.jpg', '.cbsync',
-        '.gss', '._gs', '.gsl'
+        '.gss', '._gs', '.gsl', '.bin', '.cue',
+        '.rar', '.torrent', '.pls', '.wma', '.jpeg',
+        '.JPG', '.NFOFILE'
     }
 
 
@@ -32,22 +37,25 @@ def get_exclude_substring_list():
 
 
 def get_bad_characters_list():
+    return {}
+
+
+def get_delete_prefix_list():
     return {
-        '?', '?', '?', '?', '?', '?', '?',
-        'f', '?', '?',
-        '?', '[', ']'
+        '._'
     }
 
 
 def get_delete_suffix_list():
     return {
-        '.jpg', '.log'
+        '.jpg', '.log', '.ini', '.flac', '.m3u', '.nfo',
+        '.sfv', '.url', '.bmp', '.txt', '.gif', '.png', '.pdf'
     }
 
 
 def get_delete_substring_list():
     return {
-        '.cbsync'
+        '.cbsync', 'Thumbs'
     }
 
 
@@ -71,33 +79,36 @@ def list_rename_exceptions():
     }
 
 
+# === iTunes Functionality ===
+
+# def create_playlist(playlist_name):
+#     print("Create Playlist: " + playlist_name)
+#     iTunes.CreatePlaylist(playlist_name)
+#
+#
+# def delete_playlist(playlist_name):
+#     print("Delete Playlist: " + playlist_name)
+#     iTunes.LibrarySource.Playlists.ItemByName(playlist_name).Delete()
+#
+#
+# def delete_all_playlists():
+#     print("Delete All Playlists")
+#     playlist_list = list()
+#     for playlist in iTunes.LibrarySource.Playlists:
+#         playlist_delete_exceptions_list = {
+#             'Library', 'Music', 'Movies', 'TV Shows', 'Podcasts', 'Audiobooks', 'Genius'
+#         }
+#         if not any(substring == playlist.Name for substring in playlist_delete_exceptions_list):
+#             # Add playlists not found to the list to delete. Deleting them directly here doesn't fully work.
+#
+#             playlist_list.append(playlist.Name)
+#
+#     print(playlist_list)
+#     for playlist in playlist_list:
+#         delete_playlist(playlist)
+
+
 # === TOOLS ===
-
-def create_playlist(playlist_name):
-    print("Create Playlist: " + playlist_name)
-    iTunes.CreatePlaylist(playlist_name)
-
-
-def delete_playlist(playlist_name):
-    print("Delete Playlist: " + playlist_name)
-    iTunes.LibrarySource.Playlists.ItemByName(playlist_name).Delete()
-
-
-def delete_all_playlists():
-    print("Delete All Playlists")
-    playlist_list = list()
-    for playlist in iTunes.LibrarySource.Playlists:
-        playlist_delete_exceptions_list = {
-            'Library', 'Music', 'Movies', 'TV Shows', 'Podcasts', 'Audiobooks', 'Genius'
-        }
-        if not any(substring == playlist.Name for substring in playlist_delete_exceptions_list):
-            # Add playlists not found to the list to delete. Deleting them directly here doesn't fully work.
-
-            playlist_list.append(playlist.Name)
-
-    print(playlist_list)
-    for playlist in playlist_list:
-        delete_playlist(playlist)
 
 
 def delete_file(file_path):
@@ -244,6 +255,14 @@ def include_files_containing_hyphen_issues(root, files):
     return files_included
 
 
+def include_files_with_prefix(root, files, included_prefixes):
+    files_included = []
+    for file in files:
+        if any(substring in file for substring in included_prefixes):
+            files_included.append(file)
+    return files_included
+
+
 def include_files_with_suffix(root, files, included_suffixes):
     files_included = []
     for file in files:
@@ -278,7 +297,8 @@ def delete_crap_files(path):
     print("\n===== Deleting crap files =====")
     for root, dirs, files in os.walk(path):
         files1 = include_files_with_suffix(root, files, get_delete_suffix_list())
-        files2 = include_files_containing_substring(root, files, get_delete_substring_list())
+        files2 = include_files_with_prefix(root, files, get_delete_prefix_list())
+        files3 = include_files_containing_substring(root, files, get_delete_substring_list())
         files = files1 + files2
         for file_name in files:
             delete_file(os.path.join(root, file_name))
@@ -344,7 +364,7 @@ def highlight_low_bit_rate(path):
 def check_file_editable(path):
     print("\n===== Check If File Is Editable =====")
     for root, dirs, files in os.walk(path):
-        print("\n----- " + root + " -----")
+        print("----- " + root + " -----")
         files = exclude_files_with_suffix(root, files, get_exclude_suffix_list())
         files = exclude_files_containing_substring(root, files, get_exclude_substring_list())
         for file_name in files:
@@ -365,7 +385,7 @@ def update_tags_from_file_name(path):
             data = file_name.split(" - ")
             try:
                 message = "Updating Tags: [" + os.path.basename(root) + "] " + data[0].strip() + " - " + data[1].strip()
-                print(message)
+                # print(message)
             except IndexError:
                 print("Exception (Formatting): " + root + "\\" + file_name)
 
@@ -396,25 +416,96 @@ def find_files_with_string(path, search_string):
             print(message)
 
 
+def cd_update_genre_and_album(path):
+    print("\n===== Updating genre and album for CD Collection =====")
+    for root, dirs, files in os.walk(path):
+        files = exclude_files_with_suffix(root, files, get_exclude_suffix_list())
+        files = exclude_files_containing_substring(root, files, get_exclude_substring_list())
+        for file_name in files:
+            # if 'Angel' in file_name:
+            #     print("Here")
+
+            try:
+                message = "Updating Tags: [" + os.path.basename(root) + "] " + file_name
+                # print(message)
+            except IndexError:
+                print("Exception (Formatting): " + root + "\\" + file_name)
+
+            # mp3 = MP3File(root + "\\" + file_name)
+            # album = mp3.album
+            #
+            # try:
+            #     mp3.album = 'CD Collection'
+            #     mp3.set_version(VERSION_1)
+            #     mp3.save()
+            # except AttributeError:
+            #     print("AttributeError: " + root + "\\" + file_name)
+            # except IndexError:
+            #     print("Exception (Formatting): " + root + "\\" + file_name)
+
+            # Set ID3 tags from filename and directory
+            # eyed3.LOCAL_ENCODING = 'UTF-8'
+            # eyed3.LOCAL_FS_ENCODING = 'utf-8'
+            # encoded_name = file_name.encode('utf-8').decode('latin1')
+            audio_file = eyed3.load(root + "\\" + file_name)
+            try:
+                audio_file.initTag()
+                audio_file.tag.genre = os.path.basename("CD Collection")
+                audio_file.tag.album = os.path.basename("CD Collection")
+                audio_file.tag.comments.set("TQP")
+                audio_file.tag.save()
+            except AttributeError:
+                print("AttributeError: " + root + "\\" + file_name)
+            except IndexError:
+                print("Exception (Formatting): " + root + "\\" + file_name)
+
+
+# def replace_special_characters(path):
+#     for root, dirs, files in os.walk(path):
+#         for file_name in files:
+#             if any(substring in file_name for substring in get_bad_characters_list()):
+#                 os.rename(path + "\\" + file_name, path + "\\" + 'dog.mp3')
+#                 print("Bad")
+#             else:
+#                 print("All Good")
+
+
 # MAIN PROGRAM
-rootDir = "Z:\\MUSIC\\iPod Music"
-
-
-# rootDir = "C:\\_TQP\Temp"
-
-
+# rootDir = "E:\\MUSIC\\iPod Music"
+# cdDir = "E:\\MUSIC\\CD Collection\\_Artists"
+# cdDir = "E:\\MUSIC\\Temp"
 # rootDir = "Z:\\MUSIC\\Non-Synched Mixes"
+# rootDir = "E:\\MUSIC\\iPod Music\\Beach\\"
+
+# rootDir = "\\\\camembert\\music\\Test Folder"
+rootDir = "/volume1/music/Test Folder"
 
 
 def main():
     print("SyncTunes v2")
-    # list_files(rootDir)
+
+    # ## Single-Use Functions
+    list_files(rootDir)
     # find_files_with_string(rootDir, "Doors")
+
+    # ## Find Re-Download Candidates
+    # highlight_low_bit_rate(rootDir)
+
+    # ## Clean "Bad" Files
     # delete_crap_files(rootDir)
     # highlight_rename_candidates(rootDir)
-    # highlight_low_bit_rate(rootDir)
-    check_file_editable(rootDir)
+
+    # ## Update Tags from File Name -
+    # check_file_editable(rootDir)
     # update_tags_from_file_name(rootDir)
+
+    # ## CD Collection Folder Actions
+    # delete_crap_files(cdDir)
+    # highlight_rename_candidates(cdDir)
+    # cd_update_genre_and_album(cdDir)
 
 
 main()
+
+# ## NOTES
+# Eyed3 doesn't work with python-magic > 0.4.13
