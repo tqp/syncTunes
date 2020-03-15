@@ -144,7 +144,7 @@ def are_tags_missing(root, file_name):
 
 def have_tags_changed(root, file_name):
     changed = False
-    path = root + '\\' + file_name
+    path = root + '/' + file_name
 
     # print('title : filename: ' + get_title_from_filename(file_name))
     # print('title : tag     : ' + get_title_from_tag(path))
@@ -183,7 +183,7 @@ def update_tags_from_path(path):
         print('----- ' + root + ' -----')
         mp3_files = [file for file in files if any(file.endswith(suffix) for suffix in {'.mp3'})]
         for file_name in mp3_files:
-            path = root + '\\' + file_name
+            path = root + '/' + file_name
 
             missing = are_tags_missing(root, file_name)
             changed = False
