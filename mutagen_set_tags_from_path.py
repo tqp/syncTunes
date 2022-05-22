@@ -64,7 +64,7 @@ def does_album_tag_exist(path):
         title = MP3(path)['TALB'].text[0]
         return True
     except Exception as e:
-        print('Warning: Album tag does not exist for \'' + path + '\': ' + str(e))
+        print('Exception in \'does_album_tag_exist\': Album tag does not exist for \'' + path + '\': ' + str(e))
         return False
 
 
@@ -104,16 +104,20 @@ def set_album(path, album):
 
 def get_artist_from_filename(file_name):
     data = file_name.split(' - ')
-    return data[0].strip()
+    try:
+        title = data[1].strip().replace('.mp3', '')
+        return title
+    except Exception as e:
+        print('Exception getting artist from filename: ' + file_name + ': ' + str(e))
 
 
 def get_title_from_filename(file_name):
     data = file_name.split(' - ')
     try:
-        title = data[1].strip().replace('.mp3', '')
-        return title
+        artist = data[0].strip()
+        return artist
     except Exception as e:
-        print('Exception: ' + file_name + ': ' + str(e))
+        print('Exception getting title from filename: ' + file_name + ': ' + str(e))
 
 
 def get_genre_from_path(root):
@@ -124,7 +128,7 @@ def get_genre_from_path(root):
 
 def are_tags_missing(root, file_name):
     missing = False
-    path = root + '\\' + file_name
+    path = root + '/' + file_name
 
     if not does_title_tag_exist(path):
         # print('Title tag is missing for \'' + path + '\'')
@@ -183,6 +187,7 @@ def update_tags_from_path(path):
         print('----- ' + root + ' -----')
         mp3_files = [file for file in files if any(file.endswith(suffix) for suffix in {'.mp3'})]
         for file_name in mp3_files:
+            print('Checking: ' + file_name)
             path = root + '/' + file_name
 
             missing = are_tags_missing(root, file_name)
@@ -191,22 +196,34 @@ def update_tags_from_path(path):
                 changed = have_tags_changed(root, file_name)
 
             if changed or missing:
-                print('Updating tags for: ' + path)
-                set_title(path, get_title_from_filename(file_name))
-                set_artist(path, get_artist_from_filename(file_name))
-                set_album(path, get_genre_from_path(root))
-                set_genre(path, get_genre_from_path(root))
+                # print('Updating tags for: ' + path)
+                try:
+                    set_title(path, get_title_from_filename(file_name))
+                    set_artist(path, get_artist_from_filename(file_name))
+                    set_album(path, get_genre_from_path(root))
+                    set_genre(path, get_genre_from_path(root))
+                except Exception as e:
+                    print('################')
+                    print('YOU NEED TO FIX: ' + path)
+                    print(e)
+                    print('################')
+                    pass
 
 
 def main():
     print('Starting \'Set Playlist Tags\' Job at ' + time.ctime())
     # path = 'M:\\Temp'
-    path = 'M:\\Tim\'s Playlists'
+    # path = 'M:\\Tim\'s Playlists'
+    # path = 'M:\\Tim\'s Playlists\\Beach\\Beach - Cheesy'
     # path = '/volume1/music//Tim\'s Playlists/The 1980\'s Folder/The 1980\'s - Legwarmers'
-    # path = '/volume1/music//Tim\'s Playlists'
+    # path = '/volume1/music//Tim\'s Playlists/Beach/Beach - Cheesy'
+
+    path = '/volume1/music/Tim\'s Playlists'
 
     update_tags_from_path(path)
     print('Finished.')
 
 
 main()
+
+# REF: online-audio-converter.com
