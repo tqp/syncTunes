@@ -175,7 +175,7 @@ def have_tags_changed(root, file_name):
 
 def list_files(path):
     for root, dirs, files in os.walk(path):
-        print('----- ' + root + ' -----')
+        print('----- ' + root + ' ----- (-)')
         for file_name in files:
             get_genre_from_path(root)
             # get_artist_from_filename(file_name)
@@ -184,10 +184,10 @@ def list_files(path):
 
 def update_tags_from_path(path):
     for root, dirs, files in os.walk(path):
-        print('----- ' + root + ' -----')
+        print('----- ' + root + ' ----- (=)')
         mp3_files = [file for file in files if any(file.endswith(suffix) for suffix in {'.mp3'})]
         for file_name in mp3_files:
-            print('Checking: ' + file_name)
+            # print('Checking: ' + file_name)
             path = root + '/' + file_name
 
             missing = are_tags_missing(root, file_name)
