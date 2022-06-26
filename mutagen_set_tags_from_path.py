@@ -105,7 +105,7 @@ def set_album(path, album):
 def get_artist_from_filename(file_name):
     data = file_name.split(' - ')
     try:
-        title = data[1].strip().replace('.mp3', '')
+        title = data[0].strip()
         return title
     except Exception as e:
         print('Exception getting artist from filename: ' + file_name + ': ' + str(e))
@@ -114,7 +114,7 @@ def get_artist_from_filename(file_name):
 def get_title_from_filename(file_name):
     data = file_name.split(' - ')
     try:
-        artist = data[0].strip()
+        artist = data[1].strip().replace('.mp3', '')
         return artist
     except Exception as e:
         print('Exception getting title from filename: ' + file_name + ': ' + str(e))
@@ -184,16 +184,22 @@ def list_files(path):
 
 def update_tags_from_path(path):
     for root, dirs, files in os.walk(path):
-        print('----- ' + root + ' ----- (=)')
+        print('----- ' + root + ' -----')
         mp3_files = [file for file in files if any(file.endswith(suffix) for suffix in {'.mp3'})]
         for file_name in mp3_files:
             # print('Checking: ' + file_name)
             path = root + '/' + file_name
 
+            # Song breakpoint for troubleshooting
+            # look_for = "Camila"
+            # if look_for in file_name:
+            #    print("Found!")
+
             missing = are_tags_missing(root, file_name)
             changed = False
             if not missing:
                 changed = have_tags_changed(root, file_name)
+                # changed = True
 
             if changed or missing:
                 # print('Updating tags for: ' + path)
@@ -214,6 +220,7 @@ def main():
     print('Starting \'Set Playlist Tags\' Job at ' + time.ctime())
     # path = 'M:\\Temp'
     # path = 'M:\\Tim\'s Playlists'
+    # path = 'M:\\Tim\'s Playlists\\Beach'
     # path = 'M:\\Tim\'s Playlists\\Beach\\Beach - Cheesy'
     # path = '/volume1/music//Tim\'s Playlists/The 1980\'s Folder/The 1980\'s - Legwarmers'
     # path = '/volume1/music//Tim\'s Playlists/Beach/Beach - Cheesy'
